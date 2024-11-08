@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/adbq/Documents/GitHub/Vulkan/WindowVulkan",
+      "program": "/Users/adbq/Documents/GitHub/Vulkan/WindowVulkan/build/Debug/outDebug"
+    }
+  ]
+}
