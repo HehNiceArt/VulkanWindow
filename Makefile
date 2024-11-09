@@ -1,9 +1,9 @@
 BUILD_DIR:= bin
-CFLAGS = -I/opt/homebrew/include -std=c++11
-LDFLAGS = -L/opt/homebrew/lib -lglfw -lvulkan 
+CXXFLAGS = -I/opt/homebrew/include -I/Users/adbq/VulkanSDK/vulkan/macOS/include -std=c++11
+LDFLAGS = -L/opt/homebrew/lib -L/Users/adbq/VulkanSDK/vulkan/macOS/lib -lglfw -lvulkan 
 
 $(BUILD_DIR)/triangle: triangle.cpp | $(BUILD_DIR)
-	clang++ $(CFLAGS) triangle.cpp -o $(BUILD_DIR)/triangle $(LDFLAGS)
+	clang++ $(CXXFLAGS) triangle.cpp -o $(BUILD_DIR)/triangle $(LDFLAGS)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)

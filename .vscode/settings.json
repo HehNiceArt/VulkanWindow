@@ -1,6 +1,6 @@
 {
   "C_Cpp_Runner.cCompilerPath": "/usr/bin/clang++",
-  "C_Cpp_Runner.cppCompilerPath": "/usr/bin/clang++++",
+  "C_Cpp_Runner.cppCompilerPath": "/usr/bin/clang++",
   "C_Cpp_Runner.debuggerPath": "/usr/bin/lldb++",
   "C_Cpp_Runner.cStandard": "c17",
   "C_Cpp_Runner.cppStandard": "c++17",
@@ -35,11 +35,17 @@
   ],
   "C_Cpp_Runner.enableWarnings": true,
   "C_Cpp_Runner.warningsAsError": false,
-  "C_Cpp_Runner.compilerArgs": [],
-  "C_Cpp_Runner.linkerArgs": [],
+  "C_Cpp_Runner.compilerArgs": [
+    "-I/Users/adbq/VulkanSDK/vulkan/macOS/include"
+  ],
+  "C_Cpp_Runner.linkerArgs": [
+    "-L/Users/adbq/VulkanSDK/vulkan/macOS/lib",
+    "-lvulkan"
+  ],
   "C_Cpp_Runner.includePaths": [
     "${workspaceFolder}/**",
-    "/opt/homebrew/include"
+    "/opt/homebrew/include",
+    "/opt/homebrew/opt/llvm/bin/clang++"
   ],
   "C_Cpp_Runner.includeSearch": [
     "*",
