@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include <optional>
 #include <vector>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -33,8 +34,11 @@ private:
   GLFWwindow *window;
   VkInstance instance;
   VkDebugUtilsMessengerEXT debugMessenger;
+  VkDevice device;
+  VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+  VkQueue graphicsQueue;
 
-
+#pragma region DEBUG  
   VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr) {
@@ -57,6 +61,7 @@ private:
     }
   }
 
+#pragma endregion
   void initWindow() {
     glfwInit();
 
@@ -69,8 +74,147 @@ private:
   void initVulkan() { 
     createInstance();
     setupDebugMessenger();
+    pickPhysicalDevice();
+    createLogicalDevice();
   }
-  
+
+#pragma region GPU
+  void createLogicalDevice(){
+    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    queueCreateInfo.queueCount = 1;
+
+    float queuePriority = 1.0f;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos = &queueCreateInfo;
+    createInfo.queueCreateInfoCount = 1;
+    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.enabledExtensionCount = 0;
+
+    if(enableValidationLayers){
+      createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+      createInfo.ppEnabledLayerNames = validationLayers.data();
+    }else{
+      createInfo.enabledLayerCount = 0;
+    }
+
+    if(vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS){
+      throw std::runtime_error("Failed to create logical device!");
+    }
+    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+  }
+  struct QueueFamilyIndices{
+    std::optional<uint32_t> graphicsFamily;
+
+    bool isComplete(){
+      return graphicsFamily.has_value();
+    }
+  };
+
+  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device){
+      QueueFamilyIndices indices;
+
+      uint32_t queueFamilyCount = 0;
+      vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+      std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+      vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+      int i = 0;
+      for(const auto& queueFamily : queueFamilies){
+        if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){
+          indices.graphicsFamily = i;
+        }
+        if(indices.isComplete()){
+          break;
+        }
+        i++;
+      }
+
+      return indices;
+  }
+
+  bool isDeviceSuitable(VkPhysicalDevice device){
+    /*
+    //evaluating the suitability of a device by queriying details like name, type, and support for vulkan
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    //optional features like texture compression, 64 bit floats etc
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader;
+    */
+    
+    QueueFamilyIndices indices = findQueueFamilies(device);
+
+    return indices.isComplete();
+  }
+
+  void pickPhysicalDevice(){
+    //VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    uint32_t deviceCount = 0;
+
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+    if(deviceCount == 0){
+      throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+    }
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+    /*
+    //ordered map to automatically sort candidates by increasing score
+    std::multimap<int, VkPhysicalDevice> candidates;
+    */
+
+    for(const auto& device : devices){
+      /*
+      int score = rateDeviceSuitability(device);
+      candidates.insert(std::make_pair(score, device));
+      */
+     if(isDeviceSuitable(device)){
+      physicalDevice = device;
+      break;
+     }
+    }
+    /*
+    if(candidates.rbegin()->first > 0){
+      physicalDevice = candidates.rbegin()->second;
+    }else{
+      throw std::runtime_error("Failed to find a suitable GPU!");
+    }
+    */
+    if(physicalDevice == VK_NULL_HANDLE){
+      throw std::runtime_error("Failed to find a suitable GPU!");
+    }
+  }
+  /*
+  int rateDeviceSuitability(VkPhysicalDevice device){
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+    int score = 0;
+
+    if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU){
+      score += 1000;
+    }
+    score += deviceProperties.limits.maxImageDimension2D;
+
+    if(!deviceFeatures.geometryShader){
+      return 0;
+    }
+    return score;
+  }
+  */
+#pragma endregion
   void setupDebugMessenger(){
     if(!enableValidationLayers) return;
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
@@ -87,6 +231,7 @@ private:
     }
   }
   void cleanup() {
+    vkDestroyDevice(device, nullptr);
     if(enableValidationLayers){
       DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
     }
@@ -134,6 +279,7 @@ private:
     }
   }
 
+#pragma region VALIDATION LAYERS
   bool checkValidationLayerSupport() {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -177,6 +323,7 @@ private:
 
     return VK_FALSE;
 }
+#pragma endregion
 };
 
 int main() {
