@@ -66,6 +66,7 @@
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
-    "__config": "cpp"
+    "__config": "cpp",
+    "stdexcept": "cpp"
   }
 }
